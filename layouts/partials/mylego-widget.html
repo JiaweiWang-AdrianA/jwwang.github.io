@@ -596,7 +596,7 @@
     }
 
     if (closeMode) {
-      exitCloseMode();
+      hideWidget();
       hasDragged = false;
       return;
     }
@@ -719,11 +719,17 @@
     if (emailBubble.classList.contains("show") && !emailBubble.contains(e.target) && !btn.contains(e.target)) {
       hideEmailBubble();
     }
+    if (closeMode && !widget.contains(e.target)) {
+      exitCloseMode();
+    }
   });
 
   document.addEventListener("touchstart", function (e) {
     if (emailBubble.classList.contains("show") && !emailBubble.contains(e.target) && !btn.contains(e.target)) {
       hideEmailBubble();
+    }
+    if (closeMode && !widget.contains(e.target)) {
+      exitCloseMode();
     }
   }, { passive: true });
 
