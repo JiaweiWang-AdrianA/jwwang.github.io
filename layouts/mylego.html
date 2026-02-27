@@ -1,0 +1,366 @@
+<!-- 像素解压小挂件 -->
+<style>
+  :root {
+    --widget-size: 130px;
+    --offset: 22px;
+    --bubble-max-width: 240px;
+  }
+
+  .stress-widget {
+    position: fixed;
+    right: var(--offset);
+    bottom: var(--offset);
+    z-index: 9999;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+  }
+
+  .stress-widget.dragging {
+    transition: none !important;
+    opacity: 0.88;
+  }
+
+  .stress-widget.dragging .sprite-wrap {
+    animation-play-state: paused;
+  }
+
+  .stress-bubble {
+    position: absolute;
+    right: 10px;
+    bottom: calc(var(--widget-size) + 14px);
+    max-width: var(--bubble-max-width);
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    background: rgba(22, 24, 30, 0.92);
+    color: #fff;
+    line-height: 1.55;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    transform: translateY(8px) scale(0.96);
+    opacity: 0;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    pointer-events: none;
+    white-space: normal;
+  }
+
+  .stress-bubble.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .stress-bubble::after {
+    content: "";
+    position: absolute;
+    right: 18px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    background: rgba(22, 24, 30, 0.92);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transform: rotate(45deg);
+  }
+
+  .stress-btn {
+    position: relative;
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+  }
+
+  .stress-btn:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.45);
+    outline-offset: 4px;
+  }
+
+  .sprite-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    animation: floaty 2.8s ease-in-out infinite;
+    transition: transform 0.12s ease;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
+  }
+
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+  }
+
+  .sprite-core {
+    width: 90px;
+    height: 90px;
+    display: grid;
+    place-items: center;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    transition: transform 0.08s linear;
+    will-change: transform;
+    image-rendering: pixelated;
+  }
+
+  .sprite-core img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    transform-origin: center center;
+    transition: transform 0.1s ease, filter 0.18s ease;
+    pointer-events: none;
+  }
+
+  .sprite-core.blink img {
+    transform: scaleY(0.92);
+  }
+
+  .sprite-core.pop img {
+    transform: scale(0.95);
+  }
+
+  .stress-btn:hover .sprite-core img {
+    filter: brightness(1.05);
+  }
+
+  .nudge-dot {
+    position: absolute;
+    right: 6px;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    box-shadow: 0 0 12px rgba(255,255,255,0.28);
+    animation: pulse 1.8s infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.55; }
+    50% { transform: scale(1.25); opacity: 1; }
+  }
+
+  @media (max-width: 640px) {
+    :root {
+      --widget-size: 120px;
+      --offset: 16px;
+      --bubble-max-width: 190px;
+    }
+
+    .sprite-core {
+      width: 96px;
+      height: 96px;
+    }
+
+    .stress-bubble {
+      font-size: 12px;
+    }
+  }
+</style>
+
+<div class="stress-widget" id="stressWidget" aria-live="polite">
+  <div class="stress-bubble" id="stressBubble">你终于点我了。</div>
+
+  <button
+    class="stress-btn"
+    id="stressBtn"
+    type="button"
+    aria-label="像素挂件，可拖拽"
+    title="Hello"
+  >
+    <span class="nudge-dot"></span>
+    <div class="sprite-wrap" id="spriteWrap">
+      <div class="sprite-core" id="spriteCore">
+        <img src="/mylego.png" alt="像素小人挂件" />
+      </div>
+    </div>
+  </button>
+</div>
+
+<script>
+(function () {
+  var widget     = document.getElementById("stressWidget");
+  var btn        = document.getElementById("stressBtn");
+  var bubble     = document.getElementById("stressBubble");
+  var spriteCore = document.getElementById("spriteCore");
+
+  var roasts = [
+    "你点我，是因为工作太顺利了吗。",
+    "别摸鱼了。哦，原来你在摸我。",
+    "我没有功能，但我有态度。",
+    "你刚刚那一下，像在催我交周报。",
+    "再点一下，我就当你在加班求安慰。",
+    "我负责可爱，你负责崩溃。",
+    "你的压力值已被我礼貌围观。",
+    "我建议你休息。虽然你大概率不会听。",
+    "别急，页面不会因为你焦虑就加载更快。",
+    "你好像在认真使用一个完全没用的东西。",
+    "我只是个挂件，你却把希望寄托在我身上。",
+    "点击已收到。情绪价值稍后发货。",
+    "你看起来需要咖啡。或者辞职。",
+    "我会陪你，但我不替你写需求。",
+    "冷静一点。按钮没惹你。",
+    "你把我拖来拖去，我也没变聪明。",
+    "换个位置，烦恼还在。",
+    "到处搬我，挺解压的吧。"
+  ];
+
+  var bubbleTimer = null;
+  var blinkTimer  = null;
+
+  function randomRoast() {
+    return roasts[Math.floor(Math.random() * roasts.length)];
+  }
+
+  function showBubble(text) {
+    bubble.textContent = text;
+    bubble.classList.add("show");
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(function () {
+      bubble.classList.remove("show");
+    }, 2400);
+  }
+
+  /* ── look-at-cursor ── */
+  var isDragging = false;
+
+  function lookAtCursor(clientX, clientY) {
+    if (isDragging) return;
+    var rect = btn.getBoundingClientRect();
+    var cx = rect.left + rect.width  / 2;
+    var cy = rect.top  + rect.height / 2;
+    var dx = clientX - cx;
+    var dy = clientY - cy;
+    var moveX = Math.max(-6, Math.min(6, dx / 38));
+    var moveY = Math.max(-5, Math.min(5, dy / 38));
+    var angle = Math.max(-9, Math.min(9, dx / 28));
+    spriteCore.style.transform =
+      "translate3d(" + moveX + "px," + moveY + "px,0) rotate(" + angle + "deg) scale(1)";
+  }
+
+  function resetLook() {
+    if (!isDragging) {
+      spriteCore.style.transform = "translate3d(0,0,0) rotate(0deg) scale(1)";
+    }
+  }
+
+  window.addEventListener("mousemove", function (e) {
+    lookAtCursor(e.clientX, e.clientY);
+  }, { passive: true });
+
+  window.addEventListener("mouseleave", resetLook);
+
+  /* ── drag ── */
+  var dragStartX = 0, dragStartY = 0;
+  var widgetStartLeft = 0, widgetStartTop = 0;
+  var DRAG_THRESHOLD = 6;
+  var hasDragged = false;
+
+  function getClientXY(e) {
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function initPosition() {
+    var rect = widget.getBoundingClientRect();
+    widget.style.right  = "auto";
+    widget.style.bottom = "auto";
+    widget.style.left   = rect.left + "px";
+    widget.style.top    = rect.top  + "px";
+  }
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function onPointerDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    var pos = getClientXY(e);
+    dragStartX = pos.x;
+    dragStartY = pos.y;
+    hasDragged = false;
+    initPosition();
+    widgetStartLeft = parseFloat(widget.style.left);
+    widgetStartTop  = parseFloat(widget.style.top);
+    document.addEventListener("mousemove",   onPointerMove);
+    document.addEventListener("mouseup",     onPointerUp);
+    document.addEventListener("touchmove",   onPointerMove, { passive: false });
+    document.addEventListener("touchend",    onPointerUp);
+    document.addEventListener("touchcancel", onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    var pos = getClientXY(e);
+    var dx  = pos.x - dragStartX;
+    var dy  = pos.y - dragStartY;
+    if (!hasDragged) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+      hasDragged = true;
+      isDragging = true;
+      widget.classList.add("dragging");
+      spriteCore.style.transform = "translate3d(0,0,0) rotate(0deg) scale(1)";
+    }
+    if (e.cancelable) e.preventDefault();
+    var newLeft = clamp(widgetStartLeft + dx, 0, window.innerWidth  - widget.offsetWidth);
+    var newTop  = clamp(widgetStartTop  + dy, 0, window.innerHeight - widget.offsetHeight);
+    widget.style.left = newLeft + "px";
+    widget.style.top  = newTop  + "px";
+  }
+
+  function onPointerUp() {
+    document.removeEventListener("mousemove",   onPointerMove);
+    document.removeEventListener("mouseup",     onPointerUp);
+    document.removeEventListener("touchmove",   onPointerMove);
+    document.removeEventListener("touchend",    onPointerUp);
+    document.removeEventListener("touchcancel", onPointerUp);
+    widget.classList.remove("dragging");
+    isDragging = false;
+    if (!hasDragged) {
+      spriteCore.classList.add("pop");
+      showBubble(randomRoast());
+      setTimeout(function () { spriteCore.classList.remove("pop"); }, 130);
+    } else {
+      showBubble("换了个地方，还是我。");
+    }
+    hasDragged = false;
+  }
+
+  btn.addEventListener("mousedown",  onPointerDown);
+  btn.addEventListener("touchstart", onPointerDown, { passive: true });
+
+  /* ── blink ── */
+  function scheduleBlink() {
+    var delay = 1800 + Math.random() * 2600;
+    blinkTimer = setTimeout(function () {
+      spriteCore.classList.add("blink");
+      setTimeout(function () {
+        spriteCore.classList.remove("blink");
+        scheduleBlink();
+      }, 150);
+    }, delay);
+  }
+
+  scheduleBlink();
+
+  setTimeout(function () {
+    showBubble("Hello");
+  }, 900);
+})();
+</script>

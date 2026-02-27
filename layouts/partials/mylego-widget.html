@@ -1,0 +1,739 @@
+<!-- 像素解压小挂件 -->
+<style>
+  :root {
+    --widget-size: 130px;
+    --offset: 22px;
+    --bubble-max-width: 188px; /* 更窄一点 */
+    --ui-bg: rgba(18, 20, 26, 0.58); /* 更淡 */
+    --ui-border: rgba(255, 255, 255, 0.05); /* 边框更弱 */
+    --ui-text: rgba(255, 255, 255, 0.78); /* 字更柔和 */
+    --ui-subtle: rgba(255, 255, 255, 0.5);
+    --ui-shadow: 0 6px 16px rgba(0, 0, 0, 0.14); /* 阴影更轻 */
+    --ui-blur: blur(8px); /* 模糊弱一点 */
+  }
+
+  .stress-widget {
+    position: fixed;
+    left: var(--offset);
+    top: 74px;
+    z-index: 9999;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+  }
+
+  .stress-widget.dragging {
+    transition: none !important;
+    opacity: 0.9;
+  }
+
+  .stress-widget.dragging .sprite-wrap {
+    animation-play-state: paused;
+  }
+
+  .stress-widget.is-hidden {
+    display: none;
+  }
+
+  /* 气泡 */
+  .stress-bubble {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--widget-size) - 2px); /* 更贴近人物 */
+    transform: translateX(-50%) translateY(-4px) scale(0.98);
+    transform-origin: center top;
+    max-width: var(--bubble-max-width);
+    min-width: 132px;
+    padding: 8px 10px; /* 更小 */
+    border-radius: 12px; /* 更收一点 */
+    font-size: 11px; /* 更低调 */
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: var(--ui-text);
+    background: var(--ui-bg);
+    border: 1px solid var(--ui-border);
+    box-shadow: var(--ui-shadow);
+    backdrop-filter: var(--ui-blur);
+    -webkit-backdrop-filter: var(--ui-blur);
+    opacity: 0;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+    white-space: normal;
+  }
+
+  .stress-bubble.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  .stress-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    transform: translateX(-50%) rotate(45deg);
+    background: var(--ui-bg);
+    border-left: 1px solid var(--ui-border);
+    border-top: 1px solid var(--ui-border);
+  }
+
+  .stress-btn {
+    position: relative;
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+  }
+
+  .stress-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: 3px;
+  }
+
+  .sprite-core {
+    width: 60px;
+    height: 60px;
+    display: grid;
+    place-items: center;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    transition: transform 0.08s linear, width 0.4s ease, height 0.4s ease;
+    will-change: transform;
+    image-rendering: pixelated;
+  }
+
+  .sprite-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    animation: floaty 2.8s ease-in-out infinite;
+    transition: transform 0.12s ease, opacity 0.4s ease;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.28));
+    opacity: 0.42;
+  }
+
+  .stress-btn.active .sprite-wrap {
+    opacity: 1;
+  }
+
+  .stress-btn.active .sprite-core {
+    width: 90px;
+    height: 90px;
+  }
+
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+  }
+
+  .sprite-core img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    transform-origin: center center;
+    transition: transform 0.1s ease, filter 0.18s ease, opacity 0.18s ease;
+    pointer-events: none;
+  }
+
+  .sprite-core.blink img {
+    transform: scaleY(0.92);
+  }
+
+  .sprite-core.pop img {
+    transform: scale(0.95);
+  }
+
+  .stress-btn:hover .sprite-core img {
+    filter: brightness(1.04);
+  }
+
+  /* 主按钮切换为关闭模式 */
+  .stress-btn.close-mode {
+    cursor: pointer;
+  }
+
+  /* .stress-btn.close-mode .nudge-dot {
+    display: none;
+  } */
+  .nudge-dot {
+    display: none !important;
+  }
+
+  .stress-btn.close-mode .sprite-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border-radius: 22px;
+    background: rgba(18, 20, 26, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .close-x-btn {
+    display: none;
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    place-items: center;
+    font-size: 20px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(18, 20, 26, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+
+  .close-x-btn:hover {
+    background: rgba(40, 42, 54, 0.92);
+    transform: scale(1.12);
+  }
+
+  .stress-btn.close-mode .close-x-btn {
+    display: grid;
+  }
+
+  .nudge-dot {
+    position: absolute;
+    right: 8px;
+    top: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.16);
+    animation: pulse 1.9s infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.45; }
+    50% { transform: scale(1.22); opacity: 0.9; }
+  }
+
+  .email-bubble {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--widget-size) - 2px); /* 更贴近人物 */
+    transform: translateX(-50%) translateY(-4px) scale(0.98);
+    transform-origin: center top;
+    min-width: 176px;
+    padding: 8px 10px 7px;
+    border-radius: 12px;
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--ui-text);
+    background: var(--ui-bg);
+    border: 1px solid var(--ui-border);
+    box-shadow: var(--ui-shadow);
+    backdrop-filter: var(--ui-blur);
+    -webkit-backdrop-filter: var(--ui-blur);
+    opacity: 0;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .email-bubble.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .email-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    width: 12px;
+    height: 12px;
+    transform: translateX(-50%) rotate(45deg);
+    background: var(--ui-bg);
+    border-left: 1px solid var(--ui-border);
+    border-top: 1px solid var(--ui-border);
+  }
+
+  .email-label {
+    display: block;
+    font-size: 11px;
+    color: var(--ui-subtle);
+    margin-bottom: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .email-address-text {
+    display: block;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+  }
+
+  .email-copy-btn {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--ui-border);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ui-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    outline: none;
+  }
+
+  .email-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  @media (max-width: 640px) {
+    :root {
+      --widget-size: 118px;
+      --offset: 16px;
+      --bubble-max-width: 200px;
+    }
+
+    .sprite-core {
+      width: 92px;
+      height: 92px;
+    }
+
+    .stress-bubble {
+      font-size: 12px;
+      min-width: 150px;
+    }
+  }
+</style>
+
+<div class="stress-widget" id="stressWidget" aria-live="polite">
+  <div class="stress-bubble" id="stressBubble">你终于点我了。</div>
+  <div class="email-bubble" id="emailBubble">
+    <span class="email-label">Email</span>
+    <span class="email-address-text">JW.Wang@soton.ac.uk</span>
+    <button class="email-copy-btn" id="emailCopyBtn" type="button">copy</button>
+  </div>
+
+  <button
+    class="stress-btn"
+    id="stressBtn"
+    type="button"
+    aria-label="Drag around, long-press to close."
+    title="Drag me around, long-press to send me to sleep."
+  >
+    <span class="nudge-dot"></span>
+
+    <div class="sprite-wrap" id="spriteWrap">
+      <div class="close-x-btn" id="closeXBtn" aria-label="close">×</div>
+      <div class="sprite-core" id="spriteCore">
+        <img src="/mylego.png" alt="myWidget" />
+      </div>
+    </div>
+  </button>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = "stressWidgetHidden";
+
+  var widget = document.getElementById("stressWidget");
+  var btn = document.getElementById("stressBtn");
+  var bubble = document.getElementById("stressBubble");
+  var spriteCore = document.getElementById("spriteCore");
+  var reopenBtn = document.getElementById("stressReopen");
+  var closeXBtn = document.getElementById("closeXBtn");
+  var emailBubble = document.getElementById("emailBubble");
+  var emailCopyBtn = document.getElementById("emailCopyBtn");
+
+  var roasts = [
+    "I can hear you.",
+    "That just now felt like you were urging me to submit my paper.",
+    "I advise you to rest. Although you will most likely not listen.",
+    "You seem to be seriously using something completely useless.",
+    "You look like you need coffee. Or resign.",
+  ];
+
+  var bubbleTimer = null;
+  var blinkTimer = null;
+  var longPressTimer = null;
+  var activeTimer = null;
+
+  var isDragging = false;
+  var hasDragged = false;
+  var closeMode = false;
+  var longPressTriggered = false;
+  var lastClickTime = 0;
+
+  var dragStartX = 0;
+  var dragStartY = 0;
+  var widgetStartLeft = 0;
+  var widgetStartTop = 0;
+
+  var DRAG_THRESHOLD = 6;
+  var LONG_PRESS_DELAY = 650;
+
+  function positionReopenBtn() {}
+
+  function setActive() {
+    if (activeTimer) clearTimeout(activeTimer);
+    btn.classList.add("active");
+    activeTimer = setTimeout(function () {
+      btn.classList.remove("active");
+    }, 3000);
+  }
+
+  function randomRoast() {
+    return roasts[Math.floor(Math.random() * roasts.length)];
+  }
+
+  function showBubble(text) {
+    bubble.textContent = text;
+    bubble.classList.add("show");
+
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(function () {
+      bubble.classList.remove("show");
+    }, 2200);
+  }
+
+  function hideBubble() {
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubble.classList.remove("show");
+  }
+
+  function showEmailBubble() {
+    bubble.classList.remove("show");
+    emailBubble.classList.add("show");
+  }
+
+  function hideEmailBubble() {
+    emailBubble.classList.remove("show");
+    emailCopyBtn.textContent = "copy";
+  }
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function getClientXY(e) {
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function initPosition() {
+    var rect = widget.getBoundingClientRect();
+    widget.style.left = rect.left + "px";
+    widget.style.top = rect.top + "px";
+  }
+
+  function updateButtonModeUI() {
+    if (closeMode) {
+      btn.classList.add("close-mode");
+      btn.setAttribute("aria-label", "close widget");
+      btn.setAttribute("title", "close widget");
+    } else {
+      btn.classList.remove("close-mode");
+      btn.setAttribute("aria-label", "myWidget");
+      btn.setAttribute("title", "Drag me around, long-press to send me to sleep.");
+    }
+  }
+
+  function enterCloseMode() {
+    if (widget.classList.contains("is-hidden")) return;
+    closeMode = true;
+    longPressTriggered = true;
+    updateButtonModeUI();
+    // showBubble("关闭模式已开启。再点一下我就消失。");
+  }
+
+  function exitCloseMode() {
+    closeMode = false;
+    updateButtonModeUI();
+  }
+
+  function clearLongPressTimer() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function lookAtCursor(clientX, clientY) {
+    if (isDragging || widget.classList.contains("is-hidden") || closeMode) return;
+
+    var rect = btn.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dx = clientX - cx;
+    var dy = clientY - cy;
+
+    var moveX = Math.max(-6, Math.min(6, dx / 38));
+    var moveY = Math.max(-5, Math.min(5, dy / 38));
+    var angle = Math.max(-9, Math.min(9, dx / 28));
+
+    spriteCore.style.transform =
+      "translate3d(" + moveX + "px," + moveY + "px,0) rotate(" + angle + "deg) scale(1)";
+  }
+
+  function resetLook() {
+    if (!isDragging) {
+      spriteCore.style.transform = "translate3d(0,0,0) rotate(0deg) scale(1)";
+    }
+  }
+
+  function onPointerDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    setActive();
+
+    var pos = getClientXY(e);
+    dragStartX = pos.x;
+    dragStartY = pos.y;
+    hasDragged = false;
+    longPressTriggered = false;
+
+    initPosition();
+    widgetStartLeft = parseFloat(widget.style.left);
+    widgetStartTop = parseFloat(widget.style.top);
+
+    clearLongPressTimer();
+
+    if (!closeMode) {
+      longPressTimer = setTimeout(function () {
+        if (!hasDragged && !isDragging) {
+          enterCloseMode();
+        }
+      }, LONG_PRESS_DELAY);
+    }
+
+    document.addEventListener("mousemove", onPointerMove);
+    document.addEventListener("mouseup", onPointerUp);
+    document.addEventListener("touchmove", onPointerMove, { passive: false });
+    document.addEventListener("touchend", onPointerUp);
+    document.addEventListener("touchcancel", onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    var pos = getClientXY(e);
+    var dx = pos.x - dragStartX;
+    var dy = pos.y - dragStartY;
+
+    if (!hasDragged) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+
+      hasDragged = true;
+      clearLongPressTimer();
+
+      if (closeMode) {
+        exitCloseMode();
+      }
+
+      isDragging = true;
+      widget.classList.add("dragging");
+      hideBubble();
+      spriteCore.style.transform = "translate3d(0,0,0) rotate(0deg) scale(1)";
+    }
+
+    if (e.cancelable) e.preventDefault();
+
+    var newLeft = clamp(widgetStartLeft + dx, 0, window.innerWidth - widget.offsetWidth);
+    var newTop = clamp(widgetStartTop + dy, 0, window.innerHeight - widget.offsetHeight);
+
+    widget.style.left = newLeft + "px";
+    widget.style.top = newTop + "px";
+  }
+
+  function onPointerUp() {
+    document.removeEventListener("mousemove", onPointerMove);
+    document.removeEventListener("mouseup", onPointerUp);
+    document.removeEventListener("touchmove", onPointerMove);
+    document.removeEventListener("touchend", onPointerUp);
+    document.removeEventListener("touchcancel", onPointerUp);
+
+    clearLongPressTimer();
+
+    widget.classList.remove("dragging");
+    isDragging = false;
+
+    if (hasDragged) {
+      showBubble("Move to another corner and continue daydreaming.");
+      hasDragged = false;
+      return;
+    }
+
+    if (longPressTriggered) {
+      hasDragged = false;
+      return;
+    }
+
+    if (closeMode) {
+      exitCloseMode();
+      hasDragged = false;
+      return;
+    }
+
+    var now = Date.now();
+    if (now - lastClickTime < 350) {
+      lastClickTime = 0;
+      hideBubble();
+      showEmailBubble();
+      hasDragged = false;
+      return;
+    }
+    lastClickTime = now;
+
+    spriteCore.classList.add("pop");
+    showBubble(randomRoast());
+    setTimeout(function () {
+      spriteCore.classList.remove("pop");
+    }, 130);
+
+    hasDragged = false;
+  }
+
+  function scheduleBlink() {
+    clearTimeout(blinkTimer);
+    var delay = 1800 + Math.random() * 2600;
+
+    blinkTimer = setTimeout(function () {
+      if (!widget.classList.contains("is-hidden")) {
+        spriteCore.classList.add("blink");
+        setTimeout(function () {
+          spriteCore.classList.remove("blink");
+          scheduleBlink();
+        }, 150);
+      } else {
+        scheduleBlink();
+      }
+    }, delay);
+  }
+
+  function hideWidget() {
+    hideBubble();
+    exitCloseMode();
+    widget.classList.add("is-hidden");
+    if (reopenBtn) reopenBtn.style.display = "inline-flex";
+
+    try {
+      localStorage.setItem(STORAGE_KEY, "1");
+    } catch (err) {}
+  }
+
+  function showWidget() {
+    widget.classList.remove("is-hidden");
+    if (reopenBtn) reopenBtn.style.display = "none";
+    exitCloseMode();
+    resetLook();
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {}
+  }
+
+  function restoreState() {
+    var hidden = false;
+
+    try {
+      hidden = localStorage.getItem(STORAGE_KEY) === "1";
+    } catch (err) {}
+
+    if (hidden) {
+      widget.classList.add("is-hidden");
+      if (reopenBtn) reopenBtn.style.display = "inline-flex";
+    }
+  }
+
+  window.addEventListener("resize", function () {}, { passive: true });
+
+  window.addEventListener("mousemove", function (e) {
+    lookAtCursor(e.clientX, e.clientY);
+  }, { passive: true });
+
+  window.addEventListener("mouseleave", resetLook);
+
+  btn.addEventListener("mouseenter", setActive);
+  btn.addEventListener("mousedown", onPointerDown);
+  btn.addEventListener("touchstart", onPointerDown, { passive: true });
+
+  closeXBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    hideWidget();
+  });
+
+  emailCopyBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var email = "jw.wang@soton.ac.uk";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(email).then(function () {
+        emailCopyBtn.textContent = "Copied ✓";
+        setTimeout(function () {
+          emailCopyBtn.textContent = "copy";
+        }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = email;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      emailCopyBtn.textContent = "Copied ✓";
+      setTimeout(function () {
+        emailCopyBtn.textContent = "copy";
+      }, 2000);
+    }
+  });
+
+  document.addEventListener("mousedown", function (e) {
+    if (emailBubble.classList.contains("show") && !emailBubble.contains(e.target) && !btn.contains(e.target)) {
+      hideEmailBubble();
+    }
+  });
+
+  document.addEventListener("touchstart", function (e) {
+    if (emailBubble.classList.contains("show") && !emailBubble.contains(e.target) && !btn.contains(e.target)) {
+      hideEmailBubble();
+    }
+  }, { passive: true });
+
+  reopenBtn.addEventListener("click", function () {
+    showWidget();
+    showBubble("Did you miss me?");
+  });
+
+  scheduleBlink();
+  restoreState();
+  updateButtonModeUI();
+})();
+</script>

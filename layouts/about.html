@@ -1,0 +1,93 @@
+{{ define "main" }}
+  <section class="section-sm">
+    <div class="container">
+      <div class="row justify-center">
+        <div class="md:col-10 lg:col-8">
+          {{ if .Params.scramble }}
+            <div class="scramble-wrapper mx-auto rounded mb-6" style="display:flex;justify-content:center;align-items:center;min-height:200px;border-radius:0.5rem;">
+              <div class="scramble-text" style="font-size:1.5rem;font-weight:bold;letter-spacing:2px;font-family:'Courier New',Courier,monospace;padding:2rem;text-align:center;"></div>
+            </div>
+            
+            <script>
+              (function() {
+                class TextScramble {
+                  constructor(el) {
+                    this.el = el;
+                    // 加入了更多POI风格的字符
+                    this.chars = '01ABCDEFHIJKLMNOPQRSTUVWXYZ_!@#$%>^&*';
+                    this.update = this.update.bind(this);
+                  }
+                  setText(newText) {
+                    const oldText = this.el.innerText;
+                    const length = Math.max(oldText.length, newText.length);
+                    const promise = new Promise((resolve) => (this.resolve = resolve));
+                    this.queue = [];
+                    for (let i = 0; i < length; i++) {
+                      const from = oldText[i] || '';
+                      const to = newText[i] || '';
+                      const start = Math.floor(Math.random() * 90);
+                      const end = start + Math.floor(Math.random() * 90);
+                      this.queue.push({ from, to, start, end });
+                    }
+                    cancelAnimationFrame(this.frameRequest);
+                    this.frame = 0;
+                    this.update();
+                    return promise;
+                  }
+                  update() {
+                    let output = '';
+                    let complete = 0;
+                    for (let i = 0, n = this.queue.length; i < n; i++) {
+                      let { from, to, start, end, char } = this.queue[i];
+                      if (this.frame >= end) {
+                        complete++;
+                        output += to;
+                      } else if (this.frame >= start) {
+                        if (!char || Math.random() < 0.28) {
+                          char = this.randomChar();
+                          this.queue[i].char = char;
+                        }
+                        // 关键修改：闪烁字符使用浅绿色，并增加了一点点外发光效果 (text-shadow)
+                        // output += `<span style="color:#00FF41;text-shadow:0 0 10px rgba(0,255,65,0.9);opacity:0.9;">${char}</span>`;
+                        output += `<span style="color:#006400;text-shadow:0 0 10px rgba(11,61,11,0.9);opacity:0.9;">${char}</span>`;
+                    } else {
+                        output += from;
+                      }
+                    }
+                    this.el.innerHTML = output;
+                    if (complete === this.queue.length) {
+                      this.resolve();
+                    } else {
+                      this.frameRequest = requestAnimationFrame(this.update);
+                      this.frame++;
+                    }
+                  }
+                  randomChar() {
+                    return this.chars[Math.floor(Math.random() * this.chars.length)];
+                  }
+                }
+
+                const phrases = {{ .Params.scramble | jsonify | safeJS }};
+                const el = document.querySelector('.scramble-text');
+                const fx = new TextScramble(el);
+                let counter = 0;
+                const next = () => {
+                  fx.setText(phrases[counter]).then(() => {
+                    setTimeout(next, 3000); // 稍微延长停顿时间，更有读条感
+                  });
+                  counter = (counter + 1) % phrases.length;
+                };
+                next();
+              })();
+            </script>
+          {{ else if .Params.image }}
+            {{ partial "image" (dict "Src" .Params.image "Context" .Page "Alt" .Title "Class" "mx-auto rounded mb-6" ) }}
+          {{ end }}
+          <hr class="my-8 border-t border-border dark:border-darkmode-border" style="opacity:0.5;" />
+          <h2 class="h3 mb-6">{{ .Title }}</h2>
+          <div class="content">{{ .Content }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+{{ end }}

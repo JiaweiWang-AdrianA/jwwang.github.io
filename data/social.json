@@ -1,0 +1,24 @@
+{
+  "main": [
+    {
+      "name": "email",
+      "icon": "fa fa-envelope",
+      "link": "mailto:JW.Wang@soton.ac.uk"
+    },
+    {
+      "name": "google-scholar",
+      "icon": "fab fa-google-scholar",
+      "link": "https://scholar.google.com.hk/citations?hl=zh-CN&user=h2ElNZcAAAAJ"
+    },
+    {
+      "name": "github",
+      "icon": "fab fa-github",
+      "link": "https://github.com/JiaweiWang-AdrianA"
+    },
+    {
+      "name": "linkedin",
+      "icon": "fab fa-linkedin",
+      "link": "https://www.linkedin.com/in/jiawei-wang-8999b3389/"
+    }
+  ]
+}
