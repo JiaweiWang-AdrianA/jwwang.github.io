@@ -39,4 +39,4 @@ I have been fortunate to receive several scholarships and awards throughout my s
 <!-- {{< button label="📄 Download CV" link="/CV_JiaweiWang.pdf" style="solid" >}} -->
 If you would like to know more about my academic background, research experience, and publications, you can find more details in my CV below.
 
-{{< button label="📄 Download CV" link="/CV_JiaweiWang.pdf" style="solid" >}}
+{{< button label="📄 Download CV" link="CV_JiaweiWang.pdf" style="solid" >}}

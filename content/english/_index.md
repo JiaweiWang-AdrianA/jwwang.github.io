@@ -8,7 +8,7 @@ banner:
   button:
     enable: true
     label: "About Me"
-    link: "/about"
+    link: "about"
 
 # Features
 features:
@@ -28,9 +28,9 @@ features:
   - title: "Selected Publications"
     content: "Below are selected publications spanning **privacy-preserving machine learning**, **applied cryptography**, and **secure systems**. For a full list, please visit my [Google Scholar](#) page or the [publications page](/blog)."
     bulletpoints:
-      - "**Peeling the Layers of Privacy-Utility Onion on Tabular Data** — Jiawei Wang, Zilong Zhao, Leonardo Aniello, Han Wu. *Manuscript / preprint*. [[PDF](#)]"
-      - "**A Secure Duplicate Data Sharing Method against Untrusted Cloud Service Provider** — Jiawei Wang, J. He, W. Li, et al. *IEEE 12th International Conference on Cloud Networking (CloudNet 2023)*. [[PDF](#)]"
-      - "**An Extensible Block Scheme-Based Method for Entity Matching** — Jiawei Wang, H. Ye, J. Huang. *DI2KG@VLDB 2020*. [[PDF](#)] [[Code](https://github.com/JiaweiWang-AdrianA/EntityResolution_SABC)]"
+      - "**Peeling the Layers of Privacy-Utility Onion on Tabular Data** — Jiawei Wang, Zilong Zhao, Leonardo Aniello, Han Wu. *Manuscript / preprint*."
+      - "**A Secure Duplicate Data Sharing Method against Untrusted Cloud Service Provider** — Jiawei Wang, J. He, W. Li, et al. *IEEE 12th International Conference on Cloud Networking (CloudNet 2024)*. "
+      - "**Secure and Memorable Authentication Using Dynamic Combinations of 3D Objects in Virtual Reality** — Wang J, Gao B Y, Tu H, et al. *International Journal of Human–Computer Interaction*. "
     button:
       enable: true
       label: "All Publications"
@@ -41,9 +41,10 @@ features:
     content: "Recent highlights from my academic journey:"
     bulletpoints:
       - "**Feb. 2026** — 📃 I released a new preprint: *Peeling the Layers of Privacy-Utility Onion on Tabular Data*."
-      - "**Sep. 2025** — 🎓 I started my PhD in Computer Science at the **University of Southampton**."
-      - "**Mar. 2025** — 🏆 I received the **School of Electronics and Computer Science and Faculty Scholarship** of **University of Southampton**."
-      - "**2023** — 🎉 Our work on VR authentication was published in *International Journal of Human-Computer Interaction*."
+      - "**Sep. 2025** — 🎓 I started my PhD in Computer Science at the **University of Southampton, UK**."
+      - "**Mar. 2025** — 🏆 I received the **School of Electronics and Computer Science and Faculty Scholarship** of **University of Southampton, UK**."
+      - "**Sep. 2025** — 🎓 I graduated from the **Sichuan University, China** with an **M.Eng.** in **Network and Information Security**."
+      - "**Jun. 2023** — 🎉 Our work on VR authentication \"Secure and memorable authentication using dynamic combinations of 3d objects in virtual reality\" was published in *International Journal of Human-Computer Interaction*."
     button:
       enable: false
       label: ""
