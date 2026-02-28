@@ -34,7 +34,7 @@ I enjoy exploring new ideas, building practical systems, and learning across dif
 
 Beyond research, I have also been actively involved in activities such as debate competitions and volunteer teaching. In everyday life, I enjoy sports like basketball and table tennis. I also love traveling, attending concerts, and watching live performances. In my free time, I enjoy music, movies, and TV series. One show I would especially recommend to anyone interested in AI, whether as a user or a developer, is *Person of Interest*.
 
-I have been fortunate to receive several scholarships and awards throughout my studies, including the **National Cyber Special Scholarship**, the **National Scholarship**, and multiple academic honors from both **Sichuan University** and **Jinan University**. I am deeply grateful to all the teachers, classmates, colleagues, and friends who have supported me along the way.
+I have been fortunate to receive multiple scholarships, and academic honors from University of Southampton, Sichuan University, Jinan University. I am deeply grateful to all the teachers, classmates, colleagues, and friends who have supported me along the way.
 
 <!-- {{< button label="📄 Download CV" link="/CV_JiaweiWang.pdf" style="solid" >}} -->
 If you would like to know more about my academic background, research experience, and publications, you can find more details in my CV below.

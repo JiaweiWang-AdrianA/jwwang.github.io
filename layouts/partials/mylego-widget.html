@@ -178,7 +178,7 @@
   .stress-btn.close-mode .sprite-wrap::before {
     content: "";
     position: absolute;
-    inset: 18px;
+    inset: 14px 14px 8px 14px;
     border-radius: 22px;
     background: rgba(18, 20, 26, 0.42);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -312,6 +312,22 @@
     background: rgba(255, 255, 255, 0.16);
   }
 
+  @keyframes waving {
+    0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
+    10%  { transform: translate3d(2px,-2px,0) rotate(14deg) scale(1.06); }
+    25%  { transform: translate3d(-1px,-3px,0) rotate(-8deg) scale(1.04); }
+    40%  { transform: translate3d(2px,-2px,0) rotate(12deg) scale(1.06); }
+    55%  { transform: translate3d(-1px,-2px,0) rotate(-6deg) scale(1.04); }
+    70%  { transform: translate3d(1px,-1px,0) rotate(8deg) scale(1.02); }
+    85%  { transform: translate3d(0,0,0) rotate(-3deg) scale(1.01); }
+    100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
+  }
+
+  .sprite-core.is-waving {
+    animation: waving 0.72s ease-in-out 1;
+    animation-fill-mode: forwards;
+  }
+
   @media (max-width: 640px) {
     :root {
       --widget-size: 118px;
@@ -320,8 +336,13 @@
     }
 
     .sprite-core {
-      width: 92px;
-      height: 92px;
+      width: 56px;
+      height: 56px;
+    }
+
+    .stress-btn.active .sprite-core {
+      width: 86px;
+      height: 86px;
     }
 
     .stress-bubble {
@@ -369,6 +390,10 @@
   var closeXBtn = document.getElementById("closeXBtn");
   var emailBubble = document.getElementById("emailBubble");
   var emailCopyBtn = document.getElementById("emailCopyBtn");
+  var spriteImg = spriteCore.querySelector("img");
+  var normalImgSrc = spriteImg.src;
+  var heyImgSrc = "{{ `mylego_hey.png` | absURL }}";
+  var heyTimer = null;
 
   var roasts = [
     "I can hear you.",
@@ -381,6 +406,7 @@
   var bubbleTimer = null;
   var blinkTimer = null;
   var longPressTimer = null;
+  var emailTimer = null;
   var activeTimer = null;
 
   var isDragging = false;
@@ -388,6 +414,7 @@
   var closeMode = false;
   var longPressTriggered = false;
   var lastClickTime = 0;
+  var isTouchInteraction = false;
 
   var dragStartX = 0;
   var dragStartY = 0;
@@ -396,6 +423,8 @@
 
   var DRAG_THRESHOLD = 6;
   var LONG_PRESS_DELAY = 650;
+  var TOUCH_EMAIL_DELAY = 2000;
+  var TOUCH_CLOSE_DELAY = 3500;
 
   function positionReopenBtn() {}
 
@@ -488,6 +517,14 @@
     }
   }
 
+  function clearAllTimers() {
+    clearLongPressTimer();
+    if (emailTimer) {
+      clearTimeout(emailTimer);
+      emailTimer = null;
+    }
+  }
+
   function lookAtCursor(clientX, clientY) {
     if (isDragging || widget.classList.contains("is-hidden") || closeMode) return;
 
@@ -520,19 +557,38 @@
     dragStartY = pos.y;
     hasDragged = false;
     longPressTriggered = false;
+    isTouchInteraction = (e.type === "touchstart");
 
     initPosition();
     widgetStartLeft = parseFloat(widget.style.left);
     widgetStartTop = parseFloat(widget.style.top);
 
-    clearLongPressTimer();
+    clearAllTimers();
 
-    if (!closeMode) {
+    if (isTouchInteraction) {
+      // Mobile: 2s → email bubble, 3.5s → close mode
+      emailTimer = setTimeout(function () {
+        if (!hasDragged && !isDragging) {
+          longPressTriggered = true;
+          showEmailBubble();
+        }
+      }, TOUCH_EMAIL_DELAY);
+
       longPressTimer = setTimeout(function () {
         if (!hasDragged && !isDragging) {
+          hideEmailBubble();
           enterCloseMode();
         }
-      }, LONG_PRESS_DELAY);
+      }, TOUCH_CLOSE_DELAY);
+    } else {
+      // Desktop: 650ms → close mode
+      if (!closeMode) {
+        longPressTimer = setTimeout(function () {
+          if (!hasDragged && !isDragging) {
+            enterCloseMode();
+          }
+        }, LONG_PRESS_DELAY);
+      }
     }
 
     document.addEventListener("mousemove", onPointerMove);
@@ -551,7 +607,7 @@
       if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
 
       hasDragged = true;
-      clearLongPressTimer();
+      clearAllTimers();
 
       if (closeMode) {
         exitCloseMode();
@@ -579,7 +635,7 @@
     document.removeEventListener("touchend", onPointerUp);
     document.removeEventListener("touchcancel", onPointerUp);
 
-    clearLongPressTimer();
+    clearAllTimers();
 
     widget.classList.remove("dragging");
     isDragging = false;
@@ -601,23 +657,71 @@
       return;
     }
 
-    var now = Date.now();
-    if (now - lastClickTime < 350) {
-      lastClickTime = 0;
-      hideBubble();
-      showEmailBubble();
-      hasDragged = false;
-      return;
-    }
-    lastClickTime = now;
+    if (isTouchInteraction) {
+      // Mobile single tap → roast
+      spriteCore.classList.add("pop");
+      showBubble(randomRoast());
+      setTimeout(function () {
+        spriteCore.classList.remove("pop");
+      }, 130);
+    } else {
+      // Desktop: double-click → email, single click → roast
+      var now = Date.now();
+      if (now - lastClickTime < 350) {
+        lastClickTime = 0;
+        hideBubble();
+        showEmailBubble();
+        hasDragged = false;
+        return;
+      }
+      lastClickTime = now;
 
-    spriteCore.classList.add("pop");
-    showBubble(randomRoast());
-    setTimeout(function () {
-      spriteCore.classList.remove("pop");
-    }, 130);
+      spriteCore.classList.add("pop");
+      showBubble(randomRoast());
+      setTimeout(function () {
+        spriteCore.classList.remove("pop");
+      }, 130);
+    }
 
     hasDragged = false;
+  }
+
+  function triggerWave() {
+    if (widget.classList.contains("is-hidden")) {
+      showWidget();
+    }
+
+    // Snap widget near the 👋 emoji
+    var emojiEl = document.getElementById("waveEmoji");
+    if (emojiEl) {
+      var er = emojiEl.getBoundingClientRect();
+      var wSize = widget.offsetWidth || 130;
+      var newLeft = Math.min(er.right + 6, window.innerWidth - wSize - 4);
+      var newTop = Math.max(4, er.top + er.height / 2 - wSize / 2);
+      widget.style.left = newLeft + "px";
+      widget.style.top = newTop + "px";
+    }
+
+    setActive();
+    if (heyTimer) clearTimeout(heyTimer);
+    spriteImg.src = heyImgSrc;
+    showBubble("Hi there! Thanks for visiting my website. Please contact me if you have any good ideas or questions.");
+
+    // Extend bubble to 5s (override the 2.2s default set by showBubble)
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(function () {
+      bubble.classList.remove("show");
+    }, 5000);
+
+    // Trigger wave swing
+    spriteCore.classList.remove("is-waving");
+    void spriteCore.offsetWidth; // reflow to restart animation
+    spriteCore.classList.add("is-waving");
+
+    heyTimer = setTimeout(function () {
+      spriteImg.src = normalImgSrc;
+      spriteCore.classList.remove("is-waving");
+    }, 5000);
   }
 
   function scheduleBlink() {
@@ -737,6 +841,14 @@
     showWidget();
     showBubble("Did you miss me?");
   });
+
+  var waveEmoji = document.getElementById("waveEmoji");
+  if (waveEmoji) {
+    waveEmoji.addEventListener("click", function (e) {
+      e.preventDefault();
+      triggerWave();
+    });
+  }
 
   scheduleBlink();
   restoreState();
