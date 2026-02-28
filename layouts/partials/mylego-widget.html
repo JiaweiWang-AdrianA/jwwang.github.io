@@ -423,8 +423,8 @@
 
   var DRAG_THRESHOLD = 6;
   var LONG_PRESS_DELAY = 650;
-  var TOUCH_EMAIL_DELAY = 2000;
-  var TOUCH_CLOSE_DELAY = 3500;
+  var TOUCH_EMAIL_DELAY = 1200;
+  var TOUCH_CLOSE_DELAY = 1800;
 
   function positionReopenBtn() {}
 
@@ -713,10 +713,12 @@
       bubble.classList.remove("show");
     }, 5000);
 
-    // Trigger wave swing
+    // Trigger wave swing after image has switched (one frame delay)
     spriteCore.classList.remove("is-waving");
-    void spriteCore.offsetWidth; // reflow to restart animation
-    spriteCore.classList.add("is-waving");
+    setTimeout(function () {
+      void spriteCore.offsetWidth; // reflow to restart animation
+      spriteCore.classList.add("is-waving");
+    }, 80);
 
     heyTimer = setTimeout(function () {
       spriteImg.src = normalImgSrc;
