@@ -359,6 +359,50 @@
     width: 24rem !important;
     height: 40rem !important;
   }
+
+  /* ── Mobile chat close button ── */
+  .mobile-chat-close {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 1000000;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(18, 20, 26, 0.88);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    place-items: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    pointer-events: auto;
+  }
+
+  @media (max-width: 640px) {
+    /* Show close button on mobile when chat is open */
+    .mobile-chat-close.show {
+      display: grid;
+    }
+
+    /* Full-screen chat window on mobile so keyboard can't displace it */
+    #dify-chatbot-bubble-window {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100vw !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+    }
+  }
 </style>
 
 <!-- Dify embed -->
@@ -403,6 +447,9 @@
   </button>
 </div>
 
+<!-- Mobile-only close button for chat window (avoids keyboard displacement issues) -->
+<button class="mobile-chat-close" id="mobileChatClose" type="button" aria-label="close chat">×</button>
+
 <script>
 (function () {
   var STORAGE_KEY = "stressWidgetHidden";
@@ -415,11 +462,13 @@
   var closeXBtn = document.getElementById("closeXBtn");
   var emailBubble = document.getElementById("emailBubble");
   var emailCopyBtn = document.getElementById("emailCopyBtn");
+  var mobileChatClose = document.getElementById("mobileChatClose");
   var spriteImg = spriteCore.querySelector("img");
   var normalImgSrc = spriteImg.src;
   var heyImgSrc = "{{ `mylego_hey.png` | absURL }}";
   var heyTimer = null;
 
+  var chatOpen = false;
   var bubbleTimer = null;
   var blinkTimer = null;
   var longPressTimer = null;
@@ -483,6 +532,10 @@
     hideEmailBubble();
     var difyBtn = document.getElementById("dify-chatbot-bubble-button");
     if (difyBtn) difyBtn.click();
+    chatOpen = !chatOpen;
+    if (mobileChatClose) {
+      mobileChatClose.classList.toggle("show", chatOpen);
+    }
   }
 
   function clamp(val, min, max) {
@@ -815,6 +868,13 @@
     hideWidget();
   });
 
+  // Mobile chat close button
+  if (mobileChatClose) {
+    mobileChatClose.addEventListener("click", function () {
+      if (chatOpen) toggleChat();
+    });
+  }
+
   emailCopyBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     var email = "jw.wang@soton.ac.uk";
@@ -864,12 +924,7 @@
     if (closeMode && !widget.contains(e.target)) {
       exitCloseMode();
     }
-    // Close Dify window on touch outside the widget
-    var difyWindow = document.getElementById("dify-chatbot-bubble-window");
-    if (difyWindow && difyWindow.style.display !== "none" && !widget.contains(e.target)) {
-      var difyBtn = document.getElementById("dify-chatbot-bubble-button");
-      if (difyBtn) difyBtn.click();
-    }
+    // On mobile the chat window is closed via the dedicated mobileChatClose button, not by tapping outside
   }, { passive: true });
 
   reopenBtn.addEventListener("click", function () {
@@ -883,6 +938,16 @@
       e.preventDefault();
       triggerWave();
     });
+  }
+
+  // Fix keyboard-induced displacement on mobile: shrink chat window to the visual viewport
+  if (window.visualViewport && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    window.visualViewport.addEventListener("resize", function () {
+      var difyWindow = document.getElementById("dify-chatbot-bubble-window");
+      if (!difyWindow || !chatOpen) return;
+      difyWindow.style.height = window.visualViewport.height + "px";
+      difyWindow.style.top = window.visualViewport.offsetTop + "px";
+    }, { passive: true });
   }
 
   scheduleBlink();
