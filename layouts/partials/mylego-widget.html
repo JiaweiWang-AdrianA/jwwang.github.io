@@ -350,7 +350,137 @@
       min-width: 150px;
     }
   }
+
+  /* ── Chat Panel ── */
+  .chat-panel {
+    position: fixed;
+    left: calc(var(--offset) + var(--widget-size) + 10px);
+    top: 64px;
+    width: 360px;
+    height: 580px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(14, 16, 22, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 9998;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(-12px) scale(0.97);
+    transform-origin: left center;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    pointer-events: none;
+  }
+
+  .chat-panel.open {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .chat-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 9px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  .chat-panel-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .chat-panel-title::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px #4ade80;
+    flex-shrink: 0;
+  }
+
+  .chat-panel-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.14s ease, transform 0.12s ease;
+    flex-shrink: 0;
+  }
+
+  .chat-panel-close:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: scale(1.12);
+  }
+
+  .chat-panel-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chat-panel-body iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  @media (max-width: 640px) {
+    .chat-panel {
+      left: 8px;
+      right: 8px;
+      width: auto;
+      top: auto;
+      bottom: 8px;
+      height: 74vh;
+      border-radius: 18px;
+      transform: translateY(16px) scale(0.97);
+      transform-origin: bottom center;
+    }
+
+    .chat-panel.open {
+      transform: translateY(0) scale(1);
+    }
+  }
 </style>
+
+<!-- Dify Chat Panel -->
+<div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat">
+  <div class="chat-panel-header">
+    <span class="chat-panel-title">Chat with me</span>
+    <button class="chat-panel-close" id="chatPanelClose" type="button" aria-label="Close chat">×</button>
+  </div>
+  <div class="chat-panel-body">
+    <iframe
+      id="chatIframe"
+      src=""
+      data-src="https://udify.app/chatbot/oYjnroPeXZfED37t"
+      allow="microphone"
+      loading="lazy">
+    </iframe>
+  </div>
+</div>
 
 <div class="stress-widget" id="stressWidget" aria-live="polite">
   <div class="stress-bubble" id="stressBubble">你终于点我了。</div>
@@ -390,18 +520,14 @@
   var closeXBtn = document.getElementById("closeXBtn");
   var emailBubble = document.getElementById("emailBubble");
   var emailCopyBtn = document.getElementById("emailCopyBtn");
+  var chatPanel = document.getElementById("chatPanel");
+  var chatPanelClose = document.getElementById("chatPanelClose");
+  var chatIframe = document.getElementById("chatIframe");
   var spriteImg = spriteCore.querySelector("img");
   var normalImgSrc = spriteImg.src;
   var heyImgSrc = "{{ `mylego_hey.png` | absURL }}";
   var heyTimer = null;
-
-  var roasts = [
-    "I can hear you.",
-    "That just now felt like you were urging me to submit my paper.",
-    "I advise you to rest. Although you will most likely not listen.",
-    "You seem to be seriously using something completely useless.",
-    "You look like you need coffee. Or resign.",
-  ];
+  var chatOpen = false;
 
   var bubbleTimer = null;
   var blinkTimer = null;
@@ -436,10 +562,6 @@
     }, 3000);
   }
 
-  function randomRoast() {
-    return roasts[Math.floor(Math.random() * roasts.length)];
-  }
-
   function showBubble(text) {
     bubble.textContent = text;
     bubble.classList.add("show");
@@ -463,6 +585,44 @@
   function hideEmailBubble() {
     emailBubble.classList.remove("show");
     emailCopyBtn.textContent = "copy";
+  }
+
+  function openChat() {
+    if (chatOpen) return;
+    chatOpen = true;
+    // Lazy-load the iframe src on first open
+    if (!chatIframe.src || chatIframe.src === window.location.href) {
+      chatIframe.src = chatIframe.getAttribute("data-src");
+    }
+    chatPanel.classList.add("open");
+    hideBubble();
+    hideEmailBubble();
+    // Reposition panel to avoid going off-screen
+    var rect = widget.getBoundingClientRect();
+    var panelW = chatPanel.offsetWidth || 360;
+    var spaceRight = window.innerWidth - rect.right - 10;
+    if (spaceRight >= panelW) {
+      chatPanel.style.left = (rect.right + 10) + "px";
+      chatPanel.style.right = "";
+    } else {
+      chatPanel.style.right = "8px";
+      chatPanel.style.left = "";
+    }
+    chatPanel.style.top = Math.max(8, rect.top) + "px";
+  }
+
+  function closeChat() {
+    if (!chatOpen) return;
+    chatOpen = false;
+    chatPanel.classList.remove("open");
+  }
+
+  function toggleChat() {
+    if (chatOpen) {
+      closeChat();
+    } else {
+      openChat();
+    }
   }
 
   function clamp(val, min, max) {
@@ -658,14 +818,14 @@
     }
 
     if (isTouchInteraction) {
-      // Mobile single tap → roast
+      // Mobile single tap → toggle chat
       spriteCore.classList.add("pop");
-      showBubble(randomRoast());
+      toggleChat();
       setTimeout(function () {
         spriteCore.classList.remove("pop");
       }, 130);
     } else {
-      // Desktop: double-click → email, single click → roast
+      // Desktop: double-click → email, single click → toggle chat
       var now = Date.now();
       if (now - lastClickTime < 350) {
         lastClickTime = 0;
@@ -677,7 +837,7 @@
       lastClickTime = now;
 
       spriteCore.classList.add("pop");
-      showBubble(randomRoast());
+      toggleChat();
       setTimeout(function () {
         spriteCore.classList.remove("pop");
       }, 130);
@@ -746,6 +906,7 @@
   function hideWidget() {
     hideBubble();
     exitCloseMode();
+    closeChat();
     widget.classList.add("is-hidden");
     if (reopenBtn) reopenBtn.style.display = "inline-flex";
 
@@ -793,6 +954,18 @@
   closeXBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     hideWidget();
+  });
+
+  chatPanelClose.addEventListener("click", function (e) {
+    e.stopPropagation();
+    closeChat();
+  });
+
+  // Close chat when clicking outside both the panel and the widget
+  document.addEventListener("mousedown", function (e) {
+    if (chatOpen && !chatPanel.contains(e.target) && !widget.contains(e.target)) {
+      closeChat();
+    }
   });
 
   emailCopyBtn.addEventListener("click", function (e) {
