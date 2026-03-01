@@ -597,24 +597,36 @@
     chatPanel.classList.add("open");
     hideBubble();
     hideEmailBubble();
-    // Reposition panel to avoid going off-screen
-    var rect = widget.getBoundingClientRect();
-    var panelW = chatPanel.offsetWidth || 360;
-    var spaceRight = window.innerWidth - rect.right - 10;
-    if (spaceRight >= panelW) {
-      chatPanel.style.left = (rect.right + 10) + "px";
-      chatPanel.style.right = "";
+    if (window.innerWidth > 640) {
+      // Desktop: reposition panel to avoid going off-screen
+      var rect = widget.getBoundingClientRect();
+      var panelW = chatPanel.offsetWidth || 360;
+      var spaceRight = window.innerWidth - rect.right - 10;
+      if (spaceRight >= panelW) {
+        chatPanel.style.left = (rect.right + 10) + "px";
+        chatPanel.style.right = "";
+      } else {
+        chatPanel.style.right = "8px";
+        chatPanel.style.left = "";
+      }
+      chatPanel.style.top = Math.max(8, rect.top) + "px";
+      chatPanel.style.bottom = "";
     } else {
-      chatPanel.style.right = "8px";
+      // Mobile: clear any inline styles so CSS fullscreen rules take over
       chatPanel.style.left = "";
+      chatPanel.style.right = "";
+      chatPanel.style.top = "";
+      chatPanel.style.bottom = "";
     }
-    chatPanel.style.top = Math.max(8, rect.top) + "px";
   }
 
   function closeChat() {
     if (!chatOpen) return;
     chatOpen = false;
     chatPanel.classList.remove("open");
+    // Release iframe focus so the page can receive scroll/touch events again
+    try { chatIframe.contentWindow.blur(); } catch (e) {}
+    chatIframe.blur();
   }
 
   function toggleChat() {
